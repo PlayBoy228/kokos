@@ -1,0 +1,48 @@
+version: '3.5'
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: pdp-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "8091:80"
+    networks:
+      - pdp-network
+
+  app:
+    image: php:8.2
+    restart: unless-stopped
+    container_name: pdp-app
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    build:
+      context: .
+      dockerfile: ./php/Dockerfile
+      args:
+        - SITE_URL=pdp-nginx
+    networks:
+      - pdp-network
+
+  db:
+    image: postgres
+    container_name: pdp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "pdp"
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "pwd"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./pgsql:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - pdp-network
+
+networks:
+  pdp-network:
+    driver: bridge
+    name: pdp-network
